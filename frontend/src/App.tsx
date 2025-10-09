@@ -1,10 +1,10 @@
+import Home from "./pages/Home"
 
-function App() {
-
+const App = () => {
   return (
-    <>
-      
-    </>
+    <main className="min-h-screen bg-gray-50">
+      <Home />
+    </main>
   )
 }
 
