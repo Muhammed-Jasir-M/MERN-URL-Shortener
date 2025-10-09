@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'lucide-react';
 import { shortenUrl, getStats, getAllUrls } from '../api/url_api';
-import type { ShortenedUrl } from '../api/url_api';
 import UrlInputSection from '../components/UrlInputSection';
 import CurrentShortUrl from '../components/CurrentShortUrl';
 import UrlHistory from '../components/UrlHistory';
+import type { ShortenedUrl } from '../types/types';
 
 export default function Home() {
   const [longUrl, setLongUrl] = useState('');
@@ -34,7 +34,7 @@ export default function Home() {
 
     setLoading(true);
     setError('');
-    
+
     try {
       const data = await shortenUrl(longUrl);
       setCurrentShortUrl(data);
@@ -62,7 +62,9 @@ export default function Home() {
         )
       );
       if (currentShortUrl?.shortCode === shortCode) {
-        setCurrentShortUrl((prev) => (prev ? { ...prev, clicks: data.clicks } : null));
+        setCurrentShortUrl((prev: ShortenedUrl | null) =>
+          prev ? { ...prev, clicks: data.clicks } : null
+        );
       }
     } catch (err) {
       console.error('Failed to refresh stats:', err);
@@ -72,7 +74,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-100 py-12 px-4">
       <div className="max-w-5xl mx-auto">
-        
+
         <div className="text-center mb-10">
           <div className="flex justify-center mb-5">
             <div className="p-5 bg-indigo-600 rounded-2xl shadow-xl">
