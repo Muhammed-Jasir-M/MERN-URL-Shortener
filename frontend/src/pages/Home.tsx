@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'lucide-react';
-import { shortenUrl, getStats } from '../api/url_api';
-import type { ShortenedUrl } from '../types/types';
+import { shortenUrl, getStats, getAllUrls } from '../api/url_api';
+import type { ShortenedUrl } from '../api/url_api';
 import UrlInputSection from '../components/UrlInputSection';
 import CurrentShortUrl from '../components/CurrentShortUrl';
 import UrlHistory from '../components/UrlHistory';
@@ -13,6 +13,18 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const data = await getAllUrls();
+        setUrlHistory(data);
+      } catch (err) {
+        console.error('Failed to fetch history:', err);
+      }
+    };
+    fetchHistory();
+  }, []);
 
   const handleShorten = async () => {
     if (!longUrl.trim()) {
@@ -26,14 +38,7 @@ export default function Home() {
     try {
       const data = await shortenUrl(longUrl);
       setCurrentShortUrl(data);
-
-      setUrlHistory((prev) => {
-        const exists = prev.find((item) => item.shortCode === data.shortCode);
-        return exists
-          ? prev.map((item) => (item.shortCode === data.shortCode ? data : item))
-          : [data, ...prev];
-      });
-
+      setUrlHistory((prev) => [data, ...prev.filter((item) => item.shortCode !== data.shortCode)]);
       setLongUrl('');
     } catch (err: any) {
       setError(err.message || 'Failed to shorten URL');
@@ -57,9 +62,7 @@ export default function Home() {
         )
       );
       if (currentShortUrl?.shortCode === shortCode) {
-        setCurrentShortUrl((prev) =>
-          prev ? { ...prev, clicks: data.clicks } : null
-        );
+        setCurrentShortUrl((prev) => (prev ? { ...prev, clicks: data.clicks } : null));
       }
     } catch (err) {
       console.error('Failed to refresh stats:', err);
@@ -67,23 +70,24 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 py-12 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="flex justify-center mb-4">
-            <div className="p-4 bg-indigo-600 rounded-2xl shadow-lg">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-100 py-12 px-4">
+      <div className="max-w-5xl mx-auto">
+        
+        <div className="text-center mb-10">
+          <div className="flex justify-center mb-5">
+            <div className="p-5 bg-indigo-600 rounded-2xl shadow-xl">
               <Link className="w-10 h-10 text-white" />
             </div>
           </div>
-          <h1 className="text-5xl font-bold text-gray-800 mb-3">URL Shortener</h1>
-          <p className="text-gray-600 text-lg">
-            Transform long URLs into short, shareable links.
+          <h1 className="text-5xl font-extrabold text-gray-800 tracking-tight">
+            Smart URL Shortener
+          </h1>
+          <p className="text-gray-600 mt-2 text-lg">
+            Simplify your links, track clicks, and share smarter.
           </p>
         </div>
 
-        {/* Input Section */}
-        <div className="bg-white rounded-3xl shadow-2xl p-8 mb-8 transition-all">
+        <div className="bg-white/70 backdrop-blur-lg rounded-3xl shadow-2xl p-8 mb-8 border border-indigo-100">
           <UrlInputSection
             longUrl={longUrl}
             setLongUrl={setLongUrl}
@@ -91,7 +95,6 @@ export default function Home() {
             loading={loading}
             error={error}
           />
-
           {currentShortUrl && (
             <CurrentShortUrl
               currentShortUrl={currentShortUrl}
@@ -112,3 +115,4 @@ export default function Home() {
     </div>
   );
 }
+

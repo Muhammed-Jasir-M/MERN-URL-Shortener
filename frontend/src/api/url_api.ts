@@ -23,6 +23,18 @@ export const getStats = async (shortCode: string) => {
         const errorData = await res.json();
         throw new Error(errorData.error || 'Failed to fetch stats');
     }
-    
+
     return res.json();
 };
+
+export const getAllUrls = async () => {
+    const res = await fetch(`${API_BASE_URL}/getAllUrls`);
+
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.error || 'Failed to fetch all URLs');
+    }
+
+    return res.json();
+};
+

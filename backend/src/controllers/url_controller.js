@@ -1,6 +1,5 @@
 import { nanoid } from "nanoid";
 import UrlModel from "../models/url_model.js";
-import { get } from "mongoose";
 
 export const shortenUrl = async (req, res) => {
   const { longUrl } = req.body;
@@ -21,6 +20,9 @@ export const shortenUrl = async (req, res) => {
     return;
   }
 
+  const normalizedUrl = longUrl.endsWith("/") && longUrl.length > 8
+    ? longUrl.slice(0, -1)
+    : longUrl;
 
   try {
     let urlExists = await UrlModel.findOne({ longUrl });
@@ -41,10 +43,10 @@ export const shortenUrl = async (req, res) => {
 
     console.log("New short URL created:", newUrl);
 
-    res.json({ 
-      longUrl: longUrl, 
-      shortUrl: `${process.env.BASE_URL}/${shortCode}`, 
-      shortCode: shortCode, 
+    res.json({
+      longUrl: longUrl,
+      shortUrl: `${process.env.BASE_URL}/${shortCode}`,
+      shortCode: shortCode,
       clicks: newUrl.clicks
     });
   } catch (err) {
@@ -66,9 +68,9 @@ export const redirectUrl = async (req, res) => {
 
     const url = await UrlModel.findOne({ shortCode });
 
-    if (!url) { 
+    if (!url) {
       console.log("URL not found for short code:", shortCode);
-      return res.status(404).json({ message: "URL not found" }); 
+      return res.status(404).json({ message: "URL not found" });
     }
 
     url.clicks += 1;
@@ -98,7 +100,7 @@ export const getUrlStats = async (req, res) => {
     }
 
     console.log('URL stats:', url);
-    
+
     res.json({
       longUrl: url.longUrl,
       shortCode: url.shortCode,
@@ -110,3 +112,23 @@ export const getUrlStats = async (req, res) => {
     res.status(500).json({ error: 'Server error' });
   }
 };
+
+export const getAllUrls = async (req, res) => {
+  try {
+    const urls = await UrlModel.find().sort({ createdAt: -1 });
+
+    res.json(urls.map(url => ({
+      longUrl: url.longUrl,
+      shortUrl: `${process.env.BASE_URL}/${url.shortCode}`,
+      shortCode: url.shortCode,
+      clicks: url.clicks,
+      createdAt: url.createdAt,
+    })));
+
+    console.log('All URLs retrieved:', urls);
+  } catch (error) {
+    console.error('Error in getAllUrls:', error);
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+

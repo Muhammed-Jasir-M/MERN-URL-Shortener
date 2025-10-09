@@ -1,7 +1,6 @@
 import { Globe } from 'lucide-react';
 import type { UrlInputSectionProps } from '../types/types';
 
-
 const UrlInputSection = ({ longUrl, setLongUrl, handleShorten, loading, error }: UrlInputSectionProps) => (
     <div className="space-y-4">
         <div className="relative">
@@ -16,7 +15,7 @@ const UrlInputSection = ({ longUrl, setLongUrl, handleShorten, loading, error }:
             />
         </div>
 
-        {error && (
+        {error && error.length > 0 && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl">
                 {error}
             </div>
@@ -33,3 +32,4 @@ const UrlInputSection = ({ longUrl, setLongUrl, handleShorten, loading, error }:
 );
 
 export default UrlInputSection;
+
