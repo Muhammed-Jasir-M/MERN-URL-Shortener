@@ -1,192 +1,114 @@
-import { nanoid } from "nanoid";
-import UrlModel from "../models/url_model.js";
+import urlService from '../services/url_service.js';
 
 export const shortenUrl = async (req, res) => {
-  const { longUrl, customAlias } = req.body;
+  const timestamp = new Date().toISOString();
+  const userId = req.user ? req.user.id : null;
+  const guestId = req.body.guestId || null;
 
-  console.log("shortenUrl req body: ", req.body);
-
-  if (!longUrl) {
-    console.log("URL is required");
-
-    return res.status(400).json({ message: "URL is required" });
-  }
-
-  const urlPattern = /^(https?:\/\/)?[\w.-]+\.[a-z]{2,}(\/\S*)?$/i;
-  if (!urlPattern.test(longUrl)) {
-    console.log("Invalid URL format:", longUrl);
-
-    res.status(400).json({ error: 'Invalid URL format' });
-    return;
-  }
-
-  // Validate custom alias if provided
-  if (customAlias) {
-    const aliasPattern = /^[a-zA-Z0-9-]{3,30}$/;
-    if (!aliasPattern.test(customAlias)) {
-      return res.status(400).json({ 
-        error: 'Custom alias must be 3-30 characters, alphanumeric and hyphens only' 
-      });
-    }
-
-    const aliasExists = await UrlModel.findOne({ shortCode: customAlias });
-    if (aliasExists) {
-      return res.status(409).json({ error: 'This custom alias is already taken' });
-    }
-  }
+  console.log(`[${timestamp}] [URL REQUEST] POST /api/v1/url/shorten - longUrl: ${req.body.longUrl}, customAlias: ${req.body.customAlias || 'none'}`);
 
   try {
-    let urlExists = await UrlModel.findOne({ longUrl });
-
-    if (urlExists && !customAlias) {
-      console.log("URL already short: ", urlExists);
-
-      return res.json({
-        longUrl: urlExists.longUrl,
-        shortUrl: `${process.env.BASE_URL || 'http://localhost:5000'}/${urlExists.shortCode}`,
-        clicks: urlExists.clicks,
-        shortCode: urlExists.shortCode,
-        createdAt: urlExists.createdAt,
-      });
-    }
-
-    const shortCode = customAlias || nanoid(6);
-    const newUrl = await UrlModel.create({ 
-      longUrl, 
-      shortCode,
-      customAlias: customAlias || null,
+    const result = await urlService.shortenUrl({
+      longUrl: req.body.longUrl,
+      customAlias: req.body.customAlias,
+      userId,
+      guestId,
     });
 
-    console.log("New short URL created:", newUrl);
-
-    res.json({
-      longUrl: longUrl,
-      shortUrl: `${process.env.BASE_URL || 'http://localhost:5000'}/${shortCode}`,
-      shortCode: shortCode,
-      clicks: newUrl.clicks,
-      createdAt: newUrl.createdAt,
-    });
-  } catch (err) {
-    console.error('Error in shortenUrl:', err);
-
-    res.status(500).json({ message: "Server error" });
+    console.log(`[${timestamp}] [URL SUCCESS] 200 OK - Short URL generated: ${result.shortUrl} (Reused: ${result.isReused})`);
+    res.json(result);
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    console.error(`[${timestamp}] [URL ERROR] ${statusCode} - ${error.message}`);
+    res.status(statusCode).json({ error: error.message || 'Server error' });
   }
 };
 
 export const redirectUrl = async (req, res) => {
+  const timestamp = new Date().toISOString();
+  const { shortCode } = req.params;
+
+  console.log(`[${timestamp}] [REDIRECT REQUEST] GET /${shortCode}`);
+
   try {
-    const { shortCode } = req.params;
-    console.log("redirectUrl req params:", req.params);
-
-    if (!shortCode) {
-      console.log("Short code is required");
-      return res.status(400).json({ message: "Short code is required" });
-    }
-
-    const url = await UrlModel.findOne({ shortCode });
-
-    if (!url) {
-      console.log("URL not found for short code:", shortCode);
-      return res.status(404).json({ message: "URL not found" });
-    }
-
-    url.clicks += 1;
-    await url.save();
-
-    console.log("URL found:", url);
-
-    res.redirect(url.longUrl);
-  } catch (err) {
-    console.error('Error in redirectUrl:', err);
-
-    res.status(500).json({ message: "Server error" });
+    const targetUrl = await urlService.redirectUrl(shortCode);
+    console.log(`[${timestamp}] [REDIRECT SUCCESS] 302 Found - Redirecting to: ${targetUrl}`);
+    res.redirect(targetUrl);
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    console.error(`[${timestamp}] [REDIRECT ERROR] ${statusCode} - ${error.message}`);
+    res.status(statusCode).json({ error: error.message || 'Server error' });
   }
 };
 
 export const getUrlStats = async (req, res) => {
+  const timestamp = new Date().toISOString();
+  const { shortCode } = req.params;
+
+  console.log(`[${timestamp}] [URL REQUEST] GET /api/v1/url/stats/${shortCode}`);
+
   try {
-    const { shortCode } = req.params;
-    console.log('getUrlStats req params: ', req.params);
-
-    const url = await UrlModel.findOne({ shortCode });
-
-    if (!url) {
-      console.log('URL not found for short code:', shortCode);
-      res.status(404).json({ error: 'URL not found' });
-      return;
-    }
-
-    console.log('URL stats:', url);
-
-    res.json({
-      longUrl: url.longUrl,
-      shortCode: url.shortCode,
-      clicks: url.clicks,
-      createdAt: url.createdAt,
-    });
+    const stats = await urlService.getUrlStats(shortCode);
+    console.log(`[${timestamp}] [URL SUCCESS] 200 OK - Stats retrieved for: ${shortCode}`);
+    res.json(stats);
   } catch (error) {
-    console.error('Error in getUrlStats:', error);
-    res.status(500).json({ error: 'Server error' });
+    const statusCode = error.statusCode || 500;
+    console.error(`[${timestamp}] [URL ERROR] ${statusCode} - ${error.message}`);
+    res.status(statusCode).json({ error: error.message || 'Server error' });
   }
 };
 
 export const getAllUrls = async (req, res) => {
+  const timestamp = new Date().toISOString();
+  const userId = req.user ? req.user.id : null;
+  const guestId = req.headers['x-guest-id'] || req.query.guestId;
+
+  console.log(`[${timestamp}] [URL REQUEST] GET /api/v1/url/getAllUrls - userId: ${userId || 'none'}, guestId: ${guestId || 'none'}`);
+
   try {
-    const urls = await UrlModel.find().sort({ createdAt: -1 });
-
-    res.json(urls.map(url => ({
-      longUrl: url.longUrl,
-      shortUrl: `${process.env.BASE_URL || 'http://localhost:5000'}/${url.shortCode}`,
-      shortCode: url.shortCode,
-      clicks: url.clicks,
-      createdAt: url.createdAt,
-    })));
-
-    console.log('All URLs retrieved:', urls.length);
+    const urls = await urlService.getAllUrls({ userId, guestId });
+    console.log(`[${timestamp}] [URL SUCCESS] 200 OK - Fetched ${urls.length} URLs`);
+    res.json(urls);
   } catch (error) {
-    console.error('Error in getAllUrls:', error);
-    res.status(500).json({ error: 'Server error' });
+    const statusCode = error.statusCode || 500;
+    console.error(`[${timestamp}] [URL ERROR] ${statusCode} - ${error.message}`);
+    res.status(statusCode).json({ error: error.message || 'Server error' });
   }
 };
 
 export const deleteUrl = async (req, res) => {
+  const timestamp = new Date().toISOString();
+  const { shortCode } = req.params;
+  const userId = req.user ? req.user.id : null;
+  const guestId = req.headers['x-guest-id'] || req.query.guestId;
+
+  console.log(`[${timestamp}] [URL REQUEST] DELETE /api/v1/url/url/${shortCode} - userId: ${userId || 'none'}`);
+
   try {
-    const { shortCode } = req.params;
-    console.log('deleteUrl req params:', req.params);
-
-    const url = await UrlModel.findOneAndDelete({ shortCode });
-
-    if (!url) {
-      console.log('URL not found for short code:', shortCode);
-      return res.status(404).json({ error: 'URL not found' });
-    }
-
-    console.log('URL deleted:', url);
-    res.json({ message: 'URL deleted successfully', shortCode });
+    const result = await urlService.deleteUrl({ shortCode, userId, guestId });
+    console.log(`[${timestamp}] [URL SUCCESS] 200 OK - Deleted URL: ${shortCode}`);
+    res.json(result);
   } catch (error) {
-    console.error('Error in deleteUrl:', error);
-    res.status(500).json({ error: 'Server error' });
+    const statusCode = error.statusCode || 500;
+    console.error(`[${timestamp}] [URL ERROR] ${statusCode} - ${error.message}`);
+    res.status(statusCode).json({ error: error.message || 'Server error' });
   }
 };
 
 export const getStatsSummary = async (req, res) => {
+  const timestamp = new Date().toISOString();
+  const userId = req.user ? req.user.id : null;
+  const guestId = req.headers['x-guest-id'] || req.query.guestId;
+
+  console.log(`[${timestamp}] [URL REQUEST] GET /api/v1/url/stats/summary - userId: ${userId || 'none'}`);
+
   try {
-    const totalUrls = await UrlModel.countDocuments();
-    const result = await UrlModel.aggregate([
-      { $group: { _id: null, totalClicks: { $sum: "$clicks" } } }
-    ]);
-
-    const totalClicks = result.length > 0 ? result[0].totalClicks : 0;
-
-    res.json({
-      totalUrls,
-      totalClicks,
-      avgClicks: totalUrls > 0 ? Math.round((totalClicks / totalUrls) * 10) / 10 : 0,
-    });
-
-    console.log('Stats summary:', { totalUrls, totalClicks });
+    const summary = await urlService.getStatsSummary({ userId, guestId });
+    console.log(`[${timestamp}] [URL SUCCESS] 200 OK - Summary retrieved: ${summary.totalUrls} URLs, ${summary.totalClicks} clicks`);
+    res.json(summary);
   } catch (error) {
-    console.error('Error in getStatsSummary:', error);
-    res.status(500).json({ error: 'Server error' });
+    const statusCode = error.statusCode || 500;
+    console.error(`[${timestamp}] [URL ERROR] ${statusCode} - ${error.message}`);
+    res.status(statusCode).json({ error: error.message || 'Server error' });
   }
 };

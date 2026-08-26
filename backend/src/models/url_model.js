@@ -1,4 +1,4 @@
-import { Schema, model} from "mongoose";
+import { Schema, model } from "mongoose";
 
 const urlSchema = new Schema({
   longUrl: {
@@ -14,6 +14,15 @@ const urlSchema = new Schema({
     type: String,
     default: null,
     sparse: true,
+  },
+  userId: {
+    type: Schema.Types.ObjectId,
+    ref: 'User',
+    default: null,
+  },
+  guestId: {
+    type: String,
+    default: null,
   },
   clicks: {
     type: Number,
