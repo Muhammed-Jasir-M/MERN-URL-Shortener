@@ -1,29 +1,32 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'lucide-react';
-import { shortenUrl, getStats, getAllUrls } from '../api/url_api';
+import { shortenUrl, getStatsSummary } from '../api/url_api';
 import UrlInputSection from '../components/UrlInputSection';
 import CurrentShortUrl from '../components/CurrentShortUrl';
-import UrlHistory from '../components/UrlHistory';
-import type { ShortenedUrl } from '../types/types';
+import StatsPill from '../components/StatsPill';
+import TrustBadges from '../components/TrustBadges';
+import FeatureGrid from '../components/FeatureGrid';
+import HowItWorksSection from '../components/HowItWorksSection';
+import type { ShortenedUrl, StatsSummary } from '../types/types';
 
 export default function Home() {
   const [longUrl, setLongUrl] = useState('');
+  const [customAlias, setCustomAlias] = useState('');
   const [currentShortUrl, setCurrentShortUrl] = useState<ShortenedUrl | null>(null);
-  const [urlHistory, setUrlHistory] = useState<ShortenedUrl[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [copied, setCopied] = useState(false);
+  const [stats, setStats] = useState<StatsSummary | null>(null);
 
   useEffect(() => {
-    const fetchHistory = async () => {
+    const fetchStats = async () => {
       try {
-        const data = await getAllUrls();
-        setUrlHistory(data);
+        const data = await getStatsSummary();
+        setStats(data);
       } catch (err) {
-        console.error('Failed to fetch history:', err);
+        console.error('Failed to fetch stats:', err);
       }
     };
-    fetchHistory();
+    fetchStats();
   }, []);
 
   const handleShorten = async () => {
@@ -36,12 +39,18 @@ export default function Home() {
     setError('');
 
     try {
-      const data = await shortenUrl(longUrl);
+      const data = await shortenUrl(longUrl, customAlias);
       setCurrentShortUrl(data);
-      setUrlHistory((prev) => [data, ...prev.filter((item) => item.shortCode !== data.shortCode)]);
       setLongUrl('');
-    } catch (err: any) {
-      setError(err.message || 'Failed to shorten URL');
+      setCustomAlias('');
+      const newStats = await getStatsSummary();
+      setStats(newStats);
+    } catch (err: unknown) {
+      if (err instanceof Error) {
+        setError(err.message);
+      } else {
+        setError('Failed to shorten URL');
+      }
     } finally {
       setLoading(false);
     }
@@ -53,68 +62,66 @@ export default function Home() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const handleRefreshStats = async (shortCode: string) => {
-    try {
-      const data = await getStats(shortCode);
-      setUrlHistory((prev) =>
-        prev.map((item) =>
-          item.shortCode === shortCode ? { ...item, clicks: data.clicks } : item
-        )
-      );
-      if (currentShortUrl?.shortCode === shortCode) {
-        setCurrentShortUrl((prev: ShortenedUrl | null) =>
-          prev ? { ...prev, clicks: data.clicks } : null
-        );
-      }
-    } catch (err) {
-      console.error('Failed to refresh stats:', err);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-blue-50 to-purple-100 py-12 px-4">
-      <div className="max-w-5xl mx-auto">
+    <div className="relative min-h-[calc(100vh-64px)] bg-slate-50 overflow-hidden">
+      {/* Decorative Gradient Orbs Background */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-7xl h-[600px] pointer-events-none overflow-hidden -z-10">
+        <div className="absolute top-10 left-1/4 w-96 h-96 bg-violet-400/20 rounded-full blur-3xl animate-pulse-glow" />
+        <div className="absolute top-20 right-1/4 w-96 h-96 bg-indigo-400/20 rounded-full blur-3xl animate-pulse-glow" />
+      </div>
 
-        <div className="text-center mb-10">
-          <div className="flex justify-center mb-5">
-            <div className="p-5 bg-indigo-600 rounded-2xl shadow-xl">
-              <Link className="w-10 h-10 text-white" />
+      {/* Hero Container */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-20">
+        <div className="text-center max-w-3xl mx-auto space-y-6">
+          {/* Stats Live Pill */}
+          <StatsPill stats={stats} />
+
+          {/* Hero Heading */}
+          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.15]">
+            Shorten, Share & Track <br />
+            <span className="bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent">
+              Your Digital Links
+            </span>
+          </h1>
+
+          {/* Subheading */}
+          <p className="text-lg sm:text-xl text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed">
+            Transform long, messy web links into clean, trackable short URLs and QR codes with analytics.
+          </p>
+
+          {/* Main Shortener Form Card */}
+          <div className="pt-4 max-w-2xl mx-auto">
+            <div className="bg-white/90 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-2xl shadow-violet-500/10">
+              <UrlInputSection
+                longUrl={longUrl}
+                setLongUrl={setLongUrl}
+                customAlias={customAlias}
+                setCustomAlias={setCustomAlias}
+                handleShorten={handleShorten}
+                loading={loading}
+                error={error}
+              />
+
+              {currentShortUrl && (
+                <CurrentShortUrl
+                  currentShortUrl={currentShortUrl}
+                  handleCopy={handleCopy}
+                  copied={copied}
+                />
+              )}
             </div>
           </div>
-          <h1 className="text-5xl font-extrabold text-gray-800 tracking-tight">
-            Smart URL Shortener
-          </h1>
-          <p className="text-gray-600 mt-2 text-lg">
-            Simplify your links, track clicks, and share smarter.
-          </p>
+
+          {/* Trust Badges */}
+          <TrustBadges />
         </div>
 
-        <div className="bg-white/70 backdrop-blur-lg rounded-3xl shadow-2xl p-8 mb-8 border border-indigo-100">
-          <UrlInputSection
-            longUrl={longUrl}
-            setLongUrl={setLongUrl}
-            handleShorten={handleShorten}
-            loading={loading}
-            error={error}
-          />
-          {currentShortUrl && (
-            <CurrentShortUrl
-              currentShortUrl={currentShortUrl}
-              handleCopy={handleCopy}
-              copied={copied}
-            />
-          )}
-        </div>
+        {/* Feature Grid */}
+        <FeatureGrid />
 
-        {urlHistory.length > 0 && (
-          <UrlHistory
-            urlHistory={urlHistory}
-            handleCopy={handleCopy}
-            handleRefreshStats={handleRefreshStats}
-          />
-        )}
+        {/* How It Works Section */}
+        <HowItWorksSection />
       </div>
     </div>
   );
 }
-
