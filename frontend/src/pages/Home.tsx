@@ -8,7 +8,10 @@ import FeatureGrid from '../components/FeatureGrid';
 import HowItWorksSection from '../components/HowItWorksSection';
 import type { ShortenedUrl, StatsSummary } from '../types/types';
 
+import { useAuth } from '../hooks/useAuth';
+
 export default function Home() {
+  const { user } = useAuth();
   const [longUrl, setLongUrl] = useState('');
   const [customAlias, setCustomAlias] = useState('');
   const [currentShortUrl, setCurrentShortUrl] = useState<ShortenedUrl | null>(null);
@@ -27,7 +30,7 @@ export default function Home() {
       }
     };
     fetchStats();
-  }, []);
+  }, [user]);
 
   const handleShorten = async () => {
     if (!longUrl.trim()) {
@@ -71,13 +74,13 @@ export default function Home() {
       </div>
 
       {/* Hero Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-20">
-        <div className="text-center max-w-3xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 pt-6 sm:pt-12 pb-12 sm:pb-20">
+        <div className="text-center max-w-3xl mx-auto space-y-4 sm:space-y-6">
           {/* Stats Live Pill */}
           <StatsPill stats={stats} />
 
           {/* Hero Heading */}
-          <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.15]">
+          <h1 className="text-3xl sm:text-6xl font-extrabold tracking-tight text-slate-900 leading-[1.15]">
             Shorten, Share & Track <br />
             <span className="bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent">
               Your Digital Links
@@ -85,13 +88,13 @@ export default function Home() {
           </h1>
 
           {/* Subheading */}
-          <p className="text-lg sm:text-xl text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed">
+          <p className="text-sm sm:text-xl text-slate-600 font-medium max-w-2xl mx-auto leading-relaxed">
             Transform long, messy web links into clean, trackable short URLs and QR codes with analytics.
           </p>
 
           {/* Main Shortener Form Card */}
-          <div className="pt-4 max-w-2xl mx-auto">
-            <div className="bg-white/90 backdrop-blur-xl p-6 sm:p-8 rounded-3xl border border-slate-200/80 shadow-2xl shadow-violet-500/10">
+          <div className="pt-2 sm:pt-4 max-w-2xl mx-auto">
+            <div className="bg-white/90 backdrop-blur-xl p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-slate-200/80 shadow-xl sm:shadow-2xl shadow-violet-500/10">
               <UrlInputSection
                 longUrl={longUrl}
                 setLongUrl={setLongUrl}

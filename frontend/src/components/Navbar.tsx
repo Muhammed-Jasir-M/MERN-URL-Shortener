@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Link2, LayoutDashboard, Menu, X } from 'lucide-react';
+import { Link2, LayoutDashboard, Menu, X, LogIn, LogOut, User as UserIcon, Settings } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
 
 const Navbar = () => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { user, openAuthModal, openProfileModal, logout } = useAuth();
 
   const navLinks = [
     { to: '/', label: 'Shortener', icon: Link2 },
@@ -53,6 +55,40 @@ const Navbar = () => {
           })}
         </nav>
 
+        {/* Auth User Section */}
+        <div className="hidden md:flex items-center gap-3">
+          {user ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={openProfileModal}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-50 hover:bg-violet-100 border border-violet-200 text-xs font-bold text-violet-800 transition-colors"
+                title="Profile Settings"
+              >
+                <div className="w-6 h-6 rounded-full bg-violet-600 text-white flex items-center justify-center text-[10px] font-extrabold">
+                  {user.name.charAt(0).toUpperCase()}
+                </div>
+                <span>{user.name}</span>
+                <Settings className="w-3.5 h-3.5 text-violet-500" />
+              </button>
+              <button
+                onClick={logout}
+                className="p-2 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                title="Sign Out"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => openAuthModal('login')}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold text-violet-700 bg-violet-50 hover:bg-violet-100 border border-violet-200 transition-colors"
+            >
+              <LogIn className="w-3.5 h-3.5" />
+              <span>Sign In</span>
+            </button>
+          )}
+        </div>
+
         {/* Mobile Hamburger Button */}
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
@@ -65,7 +101,7 @@ const Navbar = () => {
 
       {/* Mobile Drawer */}
       {mobileOpen && (
-        <div className="md:hidden border-t border-slate-200 bg-white/95 backdrop-blur-xl px-4 py-4 space-y-2 animate-in slide-in-from-top-2 duration-200">
+        <div className="md:hidden border-t border-slate-200 bg-white/95 backdrop-blur-xl px-4 py-4 space-y-3 animate-in slide-in-from-top-2 duration-200">
           {navLinks.map((link) => {
             const isActive = location.pathname === link.to;
             const Icon = link.icon;
@@ -85,6 +121,46 @@ const Navbar = () => {
               </Link>
             );
           })}
+
+          <div className="pt-2 border-t border-slate-100">
+            {user ? (
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    openProfileModal();
+                    setMobileOpen(false);
+                  }}
+                  className="w-full flex items-center justify-between px-3 py-2.5 bg-violet-50 hover:bg-violet-100 rounded-xl text-xs font-bold text-violet-900 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <UserIcon className="w-4 h-4 text-violet-600" />
+                    <span>{user.name}</span>
+                  </div>
+                  <Settings className="w-4 h-4 text-violet-500" />
+                </button>
+                <button
+                  onClick={() => {
+                    logout();
+                    setMobileOpen(false);
+                  }}
+                  className="w-full py-2 rounded-xl text-xs font-bold text-rose-600 hover:bg-rose-50 text-center transition-colors"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={() => {
+                  openAuthModal('login');
+                  setMobileOpen(false);
+                }}
+                className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-violet-600 text-white font-bold text-xs shadow-sm"
+              >
+                <LogIn className="w-4 h-4" />
+                <span>Sign In</span>
+              </button>
+            )}
+          </div>
         </div>
       )}
     </header>
