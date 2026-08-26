@@ -10,6 +10,11 @@ const urlSchema = new Schema({
     required: true,
     unique: true,
   },
+  customAlias: {
+    type: String,
+    default: null,
+    sparse: true,
+  },
   clicks: {
     type: Number,
     default: 0,
