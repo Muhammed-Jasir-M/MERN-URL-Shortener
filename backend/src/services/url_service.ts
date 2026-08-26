@@ -1,34 +1,28 @@
 import { nanoid } from 'nanoid';
 import urlDao from '../dao/url_dao.js';
+import { AppError } from '../types/index.js';
+import type { ShortenUrlDTO, UserContext } from '../types/index.js';
 
 class UrlService {
-  async shortenUrl({ longUrl, customAlias, userId, guestId }) {
+  async shortenUrl({ longUrl, customAlias, userId, guestId }: ShortenUrlDTO) {
     if (!longUrl) {
-      const err = new Error('URL is required');
-      err.statusCode = 400;
-      throw err;
+      throw new AppError('URL is required', 400);
     }
 
     const urlPattern = /^(https?:\/\/)?[\w.-]+\.[a-z]{2,}(\/\S*)?$/i;
     if (!urlPattern.test(longUrl)) {
-      const err = new Error('Invalid URL format');
-      err.statusCode = 400;
-      throw err;
+      throw new AppError('Invalid URL format', 400);
     }
 
     if (customAlias) {
       const aliasPattern = /^[a-zA-Z0-9-]{3,30}$/;
       if (!aliasPattern.test(customAlias)) {
-        const err = new Error('Custom alias must be 3-30 characters, alphanumeric and hyphens only');
-        err.statusCode = 400;
-        throw err;
+        throw new AppError('Custom alias must be 3-30 characters, alphanumeric and hyphens only', 400);
       }
 
       const aliasExists = await urlDao.findByShortCode(customAlias);
       if (aliasExists) {
-        const err = new Error('This custom alias is already taken');
-        err.statusCode = 409;
-        throw err;
+        throw new AppError('This custom alias is already taken', 409);
       }
     }
 
@@ -53,7 +47,7 @@ class UrlService {
       longUrl,
       shortCode,
       customAlias: customAlias || null,
-      userId: userId || null,
+      userId: userId ? (userId as any) : null,
       guestId: userId ? null : (guestId || null),
     });
 
@@ -68,29 +62,23 @@ class UrlService {
     };
   }
 
-  async redirectUrl(shortCode) {
+  async redirectUrl(shortCode: string) {
     if (!shortCode) {
-      const err = new Error('Short code is required');
-      err.statusCode = 400;
-      throw err;
+      throw new AppError('Short code is required', 400);
     }
 
     const url = await urlDao.incrementClicks(shortCode);
     if (!url) {
-      const err = new Error('URL not found');
-      err.statusCode = 404;
-      throw err;
+      throw new AppError('URL not found', 404);
     }
 
     return url.longUrl;
   }
 
-  async getUrlStats(shortCode) {
+  async getUrlStats(shortCode: string) {
     const url = await urlDao.findByShortCode(shortCode);
     if (!url) {
-      const err = new Error('URL not found');
-      err.statusCode = 404;
-      throw err;
+      throw new AppError('URL not found', 404);
     }
 
     return {
@@ -101,7 +89,7 @@ class UrlService {
     };
   }
 
-  async getAllUrls({ userId, guestId }) {
+  async getAllUrls({ userId, guestId }: UserContext) {
     const urls = await urlDao.findAllUrls({ userId, guestId });
     const baseUrl = process.env.BASE_URL || 'http://localhost:5000';
 
@@ -114,18 +102,16 @@ class UrlService {
     }));
   }
 
-  async deleteUrl({ shortCode, userId, guestId }) {
+  async deleteUrl({ shortCode, userId, guestId }: { shortCode: string } & UserContext) {
     const deletedUrl = await urlDao.deleteUrl({ shortCode, userId, guestId });
     if (!deletedUrl) {
-      const err = new Error('URL not found or unauthorized');
-      err.statusCode = 404;
-      throw err;
+      throw new AppError('URL not found or unauthorized', 404);
     }
 
     return { message: 'URL deleted successfully', shortCode };
   }
 
-  async getStatsSummary({ userId, guestId }) {
+  async getStatsSummary({ userId, guestId }: UserContext) {
     const totalUrls = await urlDao.countUrls({ userId, guestId });
     const totalClicks = await urlDao.aggregateClicks({ userId, guestId });
 

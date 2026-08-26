@@ -1,6 +1,7 @@
 import { Schema, model } from "mongoose";
+import type { IUrl } from "../types/index.js";
 
-const urlSchema = new Schema({
+const urlSchema = new Schema<IUrl>({
   longUrl: {
     type: String,
     required: true,
@@ -34,6 +35,6 @@ const urlSchema = new Schema({
   },
 });
 
-const UrlModel = model('Url', urlSchema);
+const UrlModel = model<IUrl>('Url', urlSchema);
 
 export default UrlModel;

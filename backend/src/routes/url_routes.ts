@@ -4,6 +4,7 @@ import { optionalAuth } from "../middleware/auth_middleware.js";
 
 const router = express.Router();
 
+// URL API Endpoints (Prefix: /api/v1/url)
 router.get("/getAllUrls", optionalAuth, getAllUrls);
 router.get("/stats/summary", optionalAuth, getStatsSummary);
 router.post("/shorten", optionalAuth, shortenUrl);

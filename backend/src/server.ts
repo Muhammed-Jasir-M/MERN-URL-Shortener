@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import connectDB from "./config/db.js";
@@ -19,7 +19,7 @@ app.use(cors({
 app.use(express.json());
 
 // Health Check Route
-app.get("/health", (req, res) => {
+app.get("/health", (_req: Request, res: Response) => {
   res.send("URL Shortener API v1 is running");
 });
 

@@ -1,6 +1,7 @@
 import { Schema, model } from "mongoose";
+import type { IUser } from "../types/index.js";
 
-const userSchema = new Schema({
+const userSchema = new Schema<IUser>({
   name: {
     type: String,
     required: true,
@@ -17,9 +18,12 @@ const userSchema = new Schema({
     type: String,
     required: true,
   },
-}, { timestamps: true });
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
 
-
-const UserModel = model('User', userSchema);
+const UserModel = model<IUser>('User', userSchema);
 
 export default UserModel;
